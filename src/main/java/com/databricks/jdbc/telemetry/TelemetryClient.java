@@ -61,7 +61,7 @@ public class TelemetryClient implements ITelemetryClient {
   public TelemetryClient(
       IDatabricksConnectionContext connectionContext, ExecutorService executorService) {
     this.eventsBatch = new LinkedList<>();
-    this.eventsBatchSize = connectionContext.getTelemetryBatchSize();
+    eventsBatchSize = connectionContext.getTelemetryBatchSize();
     this.context = connectionContext;
     this.databricksConfig = null;
     this.executorService = executorService;

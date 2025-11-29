@@ -66,15 +66,20 @@ public class TelemetryClientFactory {
               key,
               (k, existing) -> {
                 if (existing == null) {
-                  return new TelemetryClientHolder(
-                      new TelemetryClient(
-                          connectionContext, getTelemetryExecutorService(), databricksConfig),
-                      1);
+                  try {
+                    return new TelemetryClientHolder(
+                        new TelemetryClient(
+                            connectionContext, getTelemetryExecutorService(), databricksConfig),
+                        1);
+                  } catch (Exception e) {
+                    // Validation or other errors during client creation - fail silently
+                    return null;
+                  }
                 }
                 existing.refCount.incrementAndGet();
                 return existing;
               });
-      return holder.client;
+      return holder != null ? holder.client : NoopTelemetryClient.getInstance();
     }
     // Use no-auth telemetry client if connection creation failed.
     String key = TelemetryHelper.keyOf(connectionContext);
@@ -83,13 +88,19 @@ public class TelemetryClientFactory {
             key,
             (k, existing) -> {
               if (existing == null) {
-                return new TelemetryClientHolder(
-                    new TelemetryClient(connectionContext, getTelemetryExecutorService()), 1);
+                try {
+                  return new TelemetryClientHolder(
+                      new TelemetryClient(connectionContext, getTelemetryExecutorService()), 1);
+                } catch (Exception e) {
+                  // Validation or other errors during client creation - fail silently
+                  LOGGER.trace("Skipping telemetry, client creation failed {}", e);
+                  return null;
+                }
               }
               existing.refCount.incrementAndGet();
               return existing;
             });
-    return holder.client;
+    return holder != null ? holder.client : NoopTelemetryClient.getInstance();
   }
 
   public void closeTelemetryClient(IDatabricksConnectionContext connectionContext) {
@@ -172,5 +183,10 @@ public class TelemetryClientFactory {
       this.client = client;
       this.refCount = new AtomicInteger(initialCount);
     }
+  }
+
+  private static String keyOf(IDatabricksConnectionContext context) {
+    String host = context.getHostForOAuth();
+    return host != null ? host : DEFAULT_HOST;
   }
 }

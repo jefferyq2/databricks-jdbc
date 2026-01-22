@@ -8,8 +8,11 @@ import com.databricks.jdbc.api.IDatabricksResultSet;
 import com.databricks.jdbc.api.IExecutionStatus;
 import com.databricks.jdbc.api.impl.arrow.ArrowStreamResult;
 import com.databricks.jdbc.api.impl.arrow.ChunkProvider;
+import com.databricks.jdbc.api.impl.arrow.LazyThriftInlineArrowResult;
+import com.databricks.jdbc.api.impl.arrow.StreamingInlineArrowResult;
 import com.databricks.jdbc.api.impl.converters.ConverterHelper;
 import com.databricks.jdbc.api.impl.converters.ObjectConverter;
+import com.databricks.jdbc.api.impl.thrift.StreamingColumnarResult;
 import com.databricks.jdbc.api.impl.volume.VolumeOperationResult;
 import com.databricks.jdbc.api.internal.IDatabricksResultSetInternal;
 import com.databricks.jdbc.api.internal.IDatabricksSession;
@@ -592,12 +595,11 @@ public class DatabricksResultSet implements IDatabricksResultSet, IDatabricksRes
   /**
    * {@inheritDoc}
    *
-   * <p><b>Limitation:</b> For lazy-loaded result sets ({@link LazyThriftResult}), particularly
-   * those using {@link
-   * com.databricks.jdbc.model.client.thrift.generated.TSparkRowSetType#COLUMN_BASED_SET}, this
-   * method cannot reliably determine the cursor position. The total row count remains unknown until
-   * all rows are fetched, preventing accurate detection of whether the cursor is after the last
-   * row. This is specific to Databricks JDBC dialect.
+   * <p><b>Limitation:</b> For lazy/streaming result sets ({@link LazyThriftResult}, {@link
+   * StreamingColumnarResult}, {@link LazyThriftInlineArrowResult}, {@link
+   * StreamingInlineArrowResult}), this method cannot reliably determine the cursor position. The
+   * total row count remains unknown until all rows are fetched, preventing accurate detection of
+   * whether the cursor is after the last row. This is specific to Databricks JDBC dialect.
    */
   @Override
   public boolean isAfterLast() throws SQLException {
@@ -617,8 +619,10 @@ public class DatabricksResultSet implements IDatabricksResultSet, IDatabricksRes
    * <p>This method uses different strategies based on the result set type:
    *
    * <ul>
-   *   <li>For {@link LazyThriftResult} instances: Checks if there are no more rows available (using
-   *       {@code hasNext()}), since the total row count is unknown until all rows are fetched.
+   *   <li>For lazy/streaming result types ({@link LazyThriftResult}, {@link
+   *       StreamingColumnarResult}, {@link LazyThriftInlineArrowResult}, {@link
+   *       StreamingInlineArrowResult}): Checks if there are no more rows available (using {@code
+   *       hasNext()}), since the total row count is unknown until all rows are fetched.
    *   <li>For other result types: Compares the current row position against the known total row
    *       count.
    * </ul>
@@ -629,7 +633,10 @@ public class DatabricksResultSet implements IDatabricksResultSet, IDatabricksRes
   @Override
   public boolean isLast() throws SQLException {
     checkIfClosed();
-    if (executionResult instanceof LazyThriftResult) {
+    if (executionResult instanceof LazyThriftResult
+        || executionResult instanceof StreamingColumnarResult
+        || executionResult instanceof LazyThriftInlineArrowResult
+        || executionResult instanceof StreamingInlineArrowResult) {
       return executionResult.getCurrentRow() >= 0 && !executionResult.hasNext();
     }
     return executionResult.getCurrentRow() == resultSetMetaData.getTotalRows() - 1;

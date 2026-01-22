@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- Added streaming prefetch mode for Thrift inline results (columnar and Arrow) with background batch prefetching and configurable sliding window for improved throughput.
+- Added `EnableInlineStreaming` connection parameter to enable/disable streaming mode (default: enabled).
+- Added `ThriftMaxBatchesInMemory` connection parameter to control the sliding window size for streaming (default: 3).
 - Added support for disabling CloudFetch via `EnableQueryResultDownload=0` to use inline Arrow results instead.
 
 ### Updated

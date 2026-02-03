@@ -11,6 +11,7 @@
 - Added `NonRowcountQueryPrefixes` connection parameter to specify comma-separated query prefixes that should return result sets instead of row counts.
 
 ### Updated
+- Enhanced error logging for token exchange failures.
 - Geospatial column type names now include SRID information (e.g., `GEOMETRY(4326)` instead of `GEOMETRY`).
 - Changed default value of `IgnoreTransactions` from `0` to `1` to disable multi-statement transactions by default. Preview participants can opt-in by setting `IgnoreTransactions=0`. Also updated `supportsTransactions()` to respect this flag.
 - Implemented lazy loading for inline Arrow results, fetching arrow batches on demand instead of all at once. This improves memory usage and initial response time for large result sets when using the Thrift protocol with Arrow format.
